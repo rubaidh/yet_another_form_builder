@@ -17,7 +17,7 @@ module Rubaidh #:nodoc:
     #   concat "</fieldset>", block.binding
     # end
 
-    def label_for object_name, method, options = {}
+    def label_for(object_name, method, options = {})
       ActionView::Helpers::InstanceTag.new(object_name, method, self, nil, options.delete(:object)).to_label_tag(options)
     end
 
@@ -44,7 +44,18 @@ module Rubaidh #:nodoc:
       add_default_name_and_id(options)
       options.delete('name')
       options['for'] = options.delete('id')
-      content_tag 'label', options.delete('label') || @method_name.humanize, options
+
+      text = options.delete('label') || @method_name.humanize
+      text += "\n" + content_tag('span', '(required)', :class => :required) if options.delete('required')
+      description = options.delete('description')
+
+      label = content_tag 'label', text, options
+
+      unless description.blank?
+        label += content_tag('p', description, {})
+      end
+
+      label
     end
     
     def to_grouped_collection_select_tag(collection, group_method, group_label_method, value_method, text_method, options, html_options)
@@ -80,8 +91,7 @@ module Rubaidh #:nodoc:
     (ActionView::Helpers::FormHelper.instance_methods - %w(label_for hidden_field check_box radio_button form_for fields_for) + %w(datetime_select date_select)).each do |selector|
       src = <<-end_src
         def #{selector}(method, options = {})
-          label_options = options.dup
-          options.delete(:label)
+          label_options = label_options_from_options(options)
           label_for(method, label_options) + "\n" + super
         end
       end_src
@@ -89,43 +99,38 @@ module Rubaidh #:nodoc:
     end
 
     def select(method, choices, options = {}, html_options = {})
-      label_options = options.dup
-      options.delete(:label)
-      label_for(method, label_options) + super
+      label_options = label_options_from_options(options)
+      label_for(method, label_options) + "\n" + super
     end
 
     def collection_select(method, collection, value_method, text_method, options = {}, html_options = {})
-      label_options = options.dup
-      options.delete(:label)
+      label_options = label_options_from_options(options)
       label_method = method.to_s.gsub /_ids$/, 's'
 
       # Generate the correct name for HABTM relations and multi-select boxes.
       html_options[:name] = "#{object_name}[#{method}][]" if html_options[:multiple]
 
-      label_for(label_method, label_options) + super
+      label_for(label_method, label_options) + "\n" + super
     end
 
     def grouped_collection_select(method, collection, group_method, group_label_method, value_method, text_method, options = {}, html_options = {})
-      label_options = options.dup
-      options.delete(:label)
+      label_options = label_options_from_options(options)
       label_method = method.to_s.gsub /_ids$/, 's'
 
       # Generate the correct name for HABTM relations and multi-select boxes.
       html_options[:name] = "#{object_name}[#{method}][]" if html_options[:multiple]
 
-      label_for(label_method, label_options) + super
+      label_for(label_method, label_options) + "\n" + super
     end
 
     def check_box(method, options = {}, checked_value = "1", unchecked_value = "0")
-      label_options = options.dup
-      options.delete(:label)
-      super + label_for(method, label_options)
+      label_options = label_options_from_options(options)
+      super + "\n" + label_for(method, label_options)
     end
 
     def radio_button(method, tag_value, options = {})
-      label_options = options.dup
-      options.delete(:label)
-      super + label_for(method, label_options)
+      label_options = label_options_from_options(options)
+      super + "\n" + label_for(method, label_options)
     end
 
     def fields_for(object_name, object, builder = self.class, &proc)
@@ -134,6 +139,22 @@ module Rubaidh #:nodoc:
 
     def fieldset(options = {}, builder = self, &block)
       @template.fieldset(options, builder, &block)
+    end
+    
+    private
+    def label_options_from_options(options)
+      label_options = options.dup
+      
+      # Remove the options from the main field which apply solely to the 
+      # label.
+      [:label, :description, :required].each do |v|
+        options.delete(v)
+      end
+      
+      # Tidy up the label options so they only have what's required.
+      label_options.reject do |k, v|
+        ![:id, :label, :description, :required].include?(k)
+      end
     end
   end
 end
