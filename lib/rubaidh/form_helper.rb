@@ -18,7 +18,7 @@ module Rubaidh #:nodoc:
     # end
 
     def label_for(object_name, method, options = {})
-      ActionView::Helpers::InstanceTag.new(object_name, method, self, nil, options.delete(:object)).to_label_tag(options)
+      ActionView::Helpers::InstanceTag.new(object_name, method, self, nil, options.delete(:object)).to_label_tag(options.delete(:label) || method.to_s.humanize, options)
     end
 
     def label_tag(name, text, options = {})
@@ -39,25 +39,6 @@ module Rubaidh #:nodoc:
   end
 
   module InstanceTag #:nodoc:
-    def to_label_tag(options = {})
-      options = options.stringify_keys
-      add_default_name_and_id(options)
-      options.delete('name')
-      options['for'] = options.delete('id')
-
-      text = options.delete('label') || @method_name.humanize
-      text += "\n" + content_tag('span', '(required)', :class => :required) if options.delete('required')
-      description = options.delete('description')
-
-      label = content_tag 'label', text, options
-
-      unless description.blank?
-        label += content_tag('p', description, {})
-      end
-
-      label
-    end
-    
     def to_grouped_collection_select_tag(collection, group_method, group_label_method, value_method, text_method, options, html_options)
       html_options = html_options.stringify_keys
       add_default_name_and_id(html_options)
@@ -147,13 +128,13 @@ module Rubaidh #:nodoc:
       
       # Remove the options from the main field which apply solely to the 
       # label.
-      [:label, :description, :required].each do |v|
+      [:label].each do |v|
         options.delete(v)
       end
       
       # Tidy up the label options so they only have what's required.
       label_options.reject do |k, v|
-        ![:id, :label, :description, :required].include?(k)
+        ![:id, :label].include?(k)
       end
     end
   end
