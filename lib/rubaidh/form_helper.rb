@@ -84,6 +84,11 @@ module Rubaidh #:nodoc:
       label_for(method, label_options) + "\n" + super
     end
 
+    def country_select(method, priority_countries = nil, options = {}, html_options = {})
+      label_options = label_options_from_options(options)
+      label_for(method, label_options) + "\n" + super
+    end
+
     def collection_select(method, collection, value_method, text_method, options = {}, html_options = {})
       label_options = label_options_from_options(options)
       label_method = method.to_s.gsub /_ids$/, 's'
