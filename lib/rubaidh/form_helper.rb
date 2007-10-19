@@ -53,6 +53,24 @@ module Rubaidh #:nodoc:
         html_options
       )
     end
+
+    # Implemented in Rails 2.0, but we need to include it here for
+    # compatibility with 1.x.  Actually, that's not quite true, we're
+    # enhancing it too. :-)
+    def to_label_tag(text = nil, options = {})
+      name_and_id = options.dup
+      add_default_name_and_id(name_and_id)
+      options["for"] = name_and_id["id"]
+      content = content_for_label_tag(text, options)
+      label = content_tag("label", content, options)
+      options[:description] ? label + content_tag(:p, options[:description], :class => 'description') : label
+    end
+    
+    private
+    def content_for_label_tag(text = nil, options = {})
+      content = (text.blank? ? nil : text.to_s) || method_name.humanize
+      options[:required] ? "#{content} <span class=\"required\">*</span>" : content
+    end
   end
 
   module FormBuilderMethods #:nodoc:
@@ -69,7 +87,10 @@ module Rubaidh #:nodoc:
   end
 
   class FormBuilder < ActionView::Helpers::FormBuilder #:nodoc:
-    (ActionView::Helpers::FormHelper.instance_methods - %w(label_for hidden_field check_box radio_button form_for fields_for) + %w(datetime_select date_select)).each do |selector|
+    # Extra helpers from date_helper
+    self.field_helpers += ['date_select', 'time_select', 'datetime_select']
+
+    (field_helpers - %w(label hidden_field check_box radio_button fields_for)).each do |selector|
       src = <<-end_src
         def #{selector}(method, options = {})
           label_options = label_options_from_options(options)
@@ -77,36 +98,6 @@ module Rubaidh #:nodoc:
         end
       end_src
       class_eval src, __FILE__, __LINE__
-    end
-
-    def select(method, choices, options = {}, html_options = {})
-      label_options = label_options_from_options(options)
-      label_for(method, label_options) + "\n" + super
-    end
-
-    def country_select(method, priority_countries = nil, options = {}, html_options = {})
-      label_options = label_options_from_options(options)
-      label_for(method, label_options) + "\n" + super
-    end
-
-    def collection_select(method, collection, value_method, text_method, options = {}, html_options = {})
-      label_options = label_options_from_options(options)
-      label_method = method.to_s.gsub /_ids$/, 's'
-
-      # Generate the correct name for HABTM relations and multi-select boxes.
-      html_options[:name] = "#{object_name}[#{method}][]" if html_options[:multiple]
-
-      label_for(label_method, label_options) + "\n" + super
-    end
-
-    def grouped_collection_select(method, collection, group_method, group_label_method, value_method, text_method, options = {}, html_options = {})
-      label_options = label_options_from_options(options)
-      label_method = method.to_s.gsub /_ids$/, 's'
-
-      # Generate the correct name for HABTM relations and multi-select boxes.
-      html_options[:name] = "#{object_name}[#{method}][]" if html_options[:multiple]
-
-      label_for(label_method, label_options) + "\n" + super
     end
 
     def check_box(method, options = {}, checked_value = "1", unchecked_value = "0")
@@ -127,19 +118,54 @@ module Rubaidh #:nodoc:
       @template.fieldset(options, builder, &block)
     end
     
+    def select(method, choices, options = {}, html_options = {})
+      label_options = label_options_from_options(options)
+      label_for(method, label_options) + "\n" + super
+    end
+
+    def collection_select(method, collection, value_method, text_method, options = {}, html_options = {})
+      label_options = label_options_from_options(options)
+      label_method = method.to_s.gsub /_ids$/, 's'
+
+      # Generate the correct name for HABTM relations and multi-select boxes.
+      html_options[:name] = "#{object_name}[#{method}][]" if html_options[:multiple]
+
+      label_for(label_method, label_options) + "\n" + super
+    end
+
+    def country_select(method, priority_countries = nil, options = {}, html_options = {})
+      label_options = label_options_from_options(options)
+      label_for(method, label_options) + "\n" + super
+    end
+
+    def time_zone_select(method, priority_zones = nil, options = {}, html_options = {})
+      label_options = label_options_from_options(options)
+      label_for(method, label_options) + "\n" + super
+    end
+
+    def grouped_collection_select(method, collection, group_method, group_label_method, value_method, text_method, options = {}, html_options = {})
+      label_options = label_options_from_options(options)
+      label_method = method.to_s.gsub /_ids$/, 's'
+
+      # Generate the correct name for HABTM relations and multi-select boxes.
+      html_options[:name] = "#{object_name}[#{method}][]" if html_options[:multiple]
+
+      label_for(label_method, label_options) + "\n" + super
+    end
+
     private
     def label_options_from_options(options)
       label_options = options.dup
-      
+
       # Remove the options from the main field which apply solely to the 
       # label.
-      [:label].each do |v|
+      [:label, :required, :description].each do |v|
         options.delete(v)
       end
-      
+
       # Tidy up the label options so they only have what's required.
       label_options.reject do |k, v|
-        ![:id, :label].include?(k)
+        ![:id, :label, :required, :description].include?(k)
       end
     end
   end
