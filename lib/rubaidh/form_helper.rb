@@ -75,7 +75,7 @@ module Rubaidh #:nodoc:
 
   module FormBuilderMethods #:nodoc:
     def label_for(method, options = {})
-      @template.label_for(@object_name, method, options.merge(:object => @object))
+      @template.label_for(@object_name, method, options.merge(:object => @object)) unless options.has_key?(:label) && options[:label].blank?
     end
 
     # Implement a collection select for groups of options.  See
