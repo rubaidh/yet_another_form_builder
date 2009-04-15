@@ -1,13 +1,22 @@
 YetAnotherFormBuilder
 =====================
 
-Introduction goes here.
+Yet another form builder to try and simplify the form building process by automagically adding appropriate labels to form inputs
 
 
 Example
 =======
 
-Example goes here.
+Creating a form something like this:
+
+<% form_for(object) do |f| %>
+    <%= f.text_field :name %>
+<% end %>
+
+Will output something like this:
+
+<label for="object_name">Name</label>
+<input id="object_name" name="object[name]" size="30" type="text" />
 
 
-Copyright (c) 2007 [name of plugin creator], released under the MIT license
+Copyright (c) 2007-2009 Rubaidh Ltd, released under the MIT license
