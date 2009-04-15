@@ -18,7 +18,7 @@ module Rubaidh #:nodoc:
     # end
 
     def label_for(object_name, method, options = {})
-      ActionView::Helpers::InstanceTag.new(object_name, method, self, nil, options.delete(:object)).to_label_tag(options.delete(:label) || method.to_s.humanize, options)
+      ActionView::Helpers::InstanceTag.new(object_name, method, self, options.delete(:object)).to_label_tag(options.delete(:label) || method.to_s.humanize, options)
     end
 
     def label_tag(name, text, options = {})
